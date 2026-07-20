@@ -1,0 +1,83 @@
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+            archive-cmd: tar -czf portt-${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release portt
+            artifact: portt-${{ matrix.target }}.tar.gz
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            archive: tar.gz
+            archive-cmd: tar -czf portt-${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release portt
+            artifact: portt-${{ matrix.target }}.tar.gz
+
+          - os: macos-13
+            target: x86_64-apple-darwin
+            archive: tar.gz
+            archive-cmd: tar -czf portt-${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release portt
+            artifact: portt-${{ matrix.target }}.tar.gz
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: tar.gz
+            archive-cmd: tar -czf portt-${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release portt
+            artifact: portt-${{ matrix.target }}.tar.gz
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-freebsd
+            archive: tar.gz
+            archive-cmd: tar -czf portt-${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release portt
+            artifact: portt-${{ matrix.target }}.tar.gz
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+            archive-cmd: Compress-Archive -Path target/${{ matrix.target }}/release/portt.exe -DestinationPath portt-${{ matrix.target }}.zip
+            artifact: portt-${{ matrix.target }}.zip
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package
+        shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
+        run: ${{ matrix.archive-cmd }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: portt-*
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: portt-*
+          generate_release_notes: true
