@@ -1,0 +1,13 @@
+[package]
+name = "portt"
+version = "0.1.0"
+edition = "2026"
+description = "A ping-like tool for TCP/UDP ports"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+ctrlc = "3"
+
+[profile.release]
+opt-level = 3
